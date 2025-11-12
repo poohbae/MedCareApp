@@ -67,8 +67,8 @@ This version implements comprehensive **security mechanisms** including:
 
 #### Clone the repository
 
-git clone https://github.com/poohbae/SlotBookingSystem.git
-cd MedCare-App
+git clone https://github.com/poohbae/MedCareApp.git
+cd MedCareApp
 
 #### 2. Create and activate a virtual environment
 
@@ -108,15 +108,5 @@ All results confirmed **no critical vulnerabilities** and full compliance with *
 * Real-time tracking of user activities
 * Role-based access to logs
 * Downloadable CSV export for auditing
-
----
-
-### Contributors
-
-| Name           | ID       | Role                                                  |
-| -------------- | -------- | ----------------------------------------------------- |
-| Amelia         | 15095639 | Access Control, Authentication & Secure Communication |
-| Chong Kai Juan | 15095673 | Input Validation & Security Testing                   |
-| Law Wei Ming   | 15095776 | Logging & User Education                              |
 
 ---
