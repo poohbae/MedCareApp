@@ -1,0 +1,654 @@
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("script.js loaded successfully!");
+
+    // ===============================
+    //  Auto-hide Flash Messages
+    // ===============================
+    setTimeout(function () {
+        document.querySelectorAll(".flash-message").forEach((msg) => {
+            msg.style.transition = "opacity 0.5s";
+            msg.style.opacity = "0";
+            setTimeout(() => msg.remove(), 500);
+        });
+    }, 3000);
+
+    // ===============================
+    //  Signup Password Confirmation
+    // ===============================
+    const signupForm = document.getElementById("signupForm");
+    if (signupForm) {
+        const email = document.getElementById("email");
+        const phone = document.getElementById("phone_number");
+        const password = document.getElementById("password");
+        const confirmPassword = document.getElementById("confirm_password");
+
+        signupForm.addEventListener("submit", async (e) => {
+            e.preventDefault(); // stop default submit first
+
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            const phonePattern = /^\d{7,15}$/;
+            const strongPassword = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+
+            // Email validation
+            if (!emailPattern.test(email.value.trim())) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Invalid Email",
+                    text: "Please enter a valid email address (e.g., name@medcare.com).",
+                    confirmButtonColor: "#0b2e59"
+                });
+                return;
+            }
+
+            // Phone validation
+            if (!phonePattern.test(phone.value.trim())) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Invalid Phone Number",
+                    text: "Phone number must contain only digits (7–15 digits).",
+                    confirmButtonColor: "#0b2e59"
+                });
+                return;
+            }
+
+            // Password match
+            if (password.value !== confirmPassword.value) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Password Mismatch",
+                    text: "Please make sure both passwords are the same.",
+                    confirmButtonColor: "#0b2e59"
+                });
+                return;
+            }
+
+            // Password strength
+            if (!strongPassword.test(password.value)) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Weak Password",
+                    text: "Password must include uppercase, lowercase, and at least one number (min 8 chars).",
+                    confirmButtonColor: "#0b2e59"
+                });
+                return;
+            }
+
+            // Final confirmation before submission
+            const result = await Swal.fire({
+                icon: "question",
+                title: "Confirm Registration",
+                html: `
+                    <p>Please review your details before continuing.</p>
+                    <p style="color:#d33; font-weight:bold;">
+                        This form contains personal information such as your name, email, and phone number.
+                    </p>
+                    <p>By clicking "Sign Up", you confirm that all information provided is correct and consent to its secure storage in the system.</p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: "Yes, Sign Up",
+                cancelButtonText: "Cancel",
+                confirmButtonColor: "#0b2e59",
+                cancelButtonColor: "#d33"
+            });
+
+            if (result.isConfirmed) {
+                signupForm.submit();
+            }
+        });
+    }
+
+    // ===============================
+    //  Admin Dashboard (Add , Edit and Delete Doctor)
+    // ===============================
+    const addDoctorForm = document.getElementById("addDoctorForm");
+    if (addDoctorForm) {
+        addDoctorForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const phone = document.getElementById("phone_number").value.trim();
+            const specialization = document.getElementById("specialization").value.trim();
+            const experience = Number(document.getElementById("experience").value);
+
+            const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+            const phonePattern = /^\d{7,15}$/;
+
+            // Email validation
+            if (!emailPattern.test(email)) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Invalid Email",
+                    text: "Please enter a valid email address (e.g., name@medcare.com).",
+                    confirmButtonColor: "#0b2e59"
+                });
+                return;
+            }
+
+            // Phone number validation
+            if (!phonePattern.test(phone)) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Invalid Phone Number",
+                    text: "Phone number must contain only digits (7–15 digits).",
+                    confirmButtonColor: "#0b2e59"
+                });
+                return;
+            }
+
+            // Confirm before submission
+            Swal.fire({
+                title: "Confirm Add Doctor",
+                html: `
+                    <p>You're about to add <b>${name}</b> as a new doctor.</p>
+                    <p style="color:#d33; font-weight:bold;">
+                        This form includes personal information such as email, phone number, and specialization.
+                    </p>
+                    <p>Ensure that the information is accurate before submitting.</p>
+                `,
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: "#0b2e59",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Yes, Add Doctor"
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                const doctorData = {
+                    name,
+                    email,
+                    phone_number: phone,
+                    specialization,
+                    experience_years: experience
+                };
+
+                fetch("/add_doctor", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(doctorData)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Doctor Added!",
+                            text: "The new doctor has been added successfully.",
+                            confirmButtonColor: "#0b2e59"
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: data.error || "Failed to add doctor.",
+                            confirmButtonColor: "#0b2e59"
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Server Error",
+                        text: "Something went wrong while adding the doctor.",
+                        confirmButtonColor: "#0b2e59"
+                    });
+                });
+            });
+        });
+
+        const modal = document.getElementById("editDoctorModal");
+        const closeModalBtn = document.getElementById("closeModalBtn");
+        const editForm = document.getElementById("editDoctorForm");
+
+        // Open modal and populate fields
+        document.querySelectorAll(".edit-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.getElementById("editDoctorId").value = btn.dataset.id;
+                document.getElementById("editEmail").value = btn.dataset.email;
+                document.getElementById("editSpecialization").value = btn.dataset.specialization;
+                document.getElementById("editExperience").value = btn.dataset.experience;
+                modal.style.display = "flex";
+            });
+        });
+
+        // Close modal
+        closeModalBtn.addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        // Submit edit form
+        editForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+            const doctorId = document.getElementById("editDoctorId").value;
+            const email = document.getElementById("editEmail").value;
+            const specialization = document.getElementById("editSpecialization").value;
+            const experience = document.getElementById("editExperience").value;
+
+            fetch("/update_doctor", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ doctor_id: doctorId, email, specialization, experience })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Doctor Updated",
+                        text: data.message,
+                        confirmButtonColor: "#0b2e59"
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Update Failed",
+                        text: data.error,
+                        confirmButtonColor: "#0b2e59"
+                    });
+                }
+            })
+            .catch(err => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Server Error",
+                    text: "An unexpected error occurred.",
+                    confirmButtonColor: "#0b2e59"
+                });
+            });
+        });
+
+        // Delete Doctor
+        document.addEventListener("click", (event) => {
+            if (event.target.classList.contains("delete-btn") || event.target.closest(".delete-btn")) {
+                const button = event.target.closest(".delete-btn");
+                const doctorId = button.dataset.id;
+                const doctorEmail = button.dataset.email;
+
+                Swal.fire({
+                    title: "Are you sure?",
+                    text: "This will permanently delete the doctor record!",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    cancelButtonColor: "#3085d6",
+                    confirmButtonText: "Yes, delete it!"
+                }).then((result) => {
+                    if (!result.isConfirmed) return;
+
+                    fetch('/delete_doctor', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ doctor_id: Number(doctorId), email: doctorEmail })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: "success",
+                                title: "Deleted!",
+                                text: "Doctor record deleted successfully.",
+                                confirmButtonColor: "#0b2e59"
+                            }).then(() => location.reload());
+                        } else {
+                            Swal.fire({
+                                icon: "error",
+                                title: "Error",
+                                text: data.error || "Failed to delete doctor.",
+                                confirmButtonColor: "#0b2e59"
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        Swal.fire({
+                            icon: "error",
+                            title: "Server Error",
+                            text: "Unable to delete doctor due to a server error.",
+                            confirmButtonColor: "#0b2e59"
+                        });
+                    });
+                });
+            }
+        });
+    }
+
+    // ===============================
+    //  Doctor Dashboard (Approve / Reject Appointment)
+    // ===============================
+    const approveButtons = document.querySelectorAll(".approve-btn");
+    const rejectButtons = document.querySelectorAll(".reject-btn");
+
+    if (approveButtons.length > 0 || rejectButtons.length > 0) {
+        approveButtons.forEach(btn => {
+            btn.addEventListener("click", () => confirmUpdate(btn.dataset.id, "approved"));
+        });
+        rejectButtons.forEach(btn => {
+            btn.addEventListener("click", () => confirmUpdate(btn.dataset.id, "rejected"));
+        });
+
+        function confirmUpdate(id, status) {
+            const actionText = status === "approved" ? "approve" : "reject";
+            const actionColor = status === "approved" ? "#28a745" : "#d33";
+
+            Swal.fire({
+                title: `Are you sure you want to ${actionText} this appointment?`,
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonColor: actionColor,
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: `Yes, ${actionText} it!`
+            }).then((result) => {
+                if (result.isConfirmed) updateStatus(id, status);
+            });
+        }
+
+        function updateStatus(id, status) {
+            fetch("/update_appointment_status", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ appointment_id: id, status: status })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: `Appointment ${status}!`,
+                        text: `The appointment has been successfully ${status}.`,
+                        confirmButtonColor: "#0b2e59"
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error",
+                        text: data.error || "Failed to update appointment.",
+                        confirmButtonColor: "#0b2e59"
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire({
+                    icon: "error",
+                    title: "Server Error",
+                    text: "An error occurred while updating the appointment status.",
+                    confirmButtonColor: "#0b2e59"
+                });
+            });
+        }
+    }
+
+    // ===============================
+    //  Patient Dashboard (Booking + Cancel Appointment)
+    // ===============================
+    const specializationDropdown = document.getElementById("specialization");
+    const doctorDropdown = document.getElementById("doctor");
+    const dateInput = document.getElementById("date");
+    const timeDropdown = document.getElementById("time");
+
+    if (specializationDropdown && doctorDropdown && dateInput && timeDropdown) {
+        const today = new Date().toISOString().split("T")[0];
+        dateInput.min = today;
+
+        specializationDropdown.addEventListener("change", () => {
+            const specialization = specializationDropdown.value;
+            doctorDropdown.innerHTML = "<option>Loading...</option>";
+
+            fetch(`/get_doctors/${encodeURIComponent(specialization)}`)
+                .then(res => res.json())
+                .then(data => {
+                    doctorDropdown.innerHTML = '<option value="">Select Doctor</option>';
+                    data.forEach(doc => {
+                        doctorDropdown.innerHTML += `
+                        <option value="${doc.doctor_id}" data-email="${doc.email}">
+                            ${doc.name}
+                        </option>`;
+                    });
+                })
+                .catch(() => doctorDropdown.innerHTML = '<option>Error loading doctors</option>');
+        });
+
+        function updateTimeSlots() {
+            const doctorId = doctorDropdown.value;
+            const date = dateInput.value;
+            if (!doctorId || !date) {
+                timeDropdown.innerHTML = '<option>Select doctor and date first</option>';
+                return;
+            }
+            timeDropdown.innerHTML = '<option>Loading...</option>';
+
+            fetch(`/get_available_slots/${doctorId}/${encodeURIComponent(date)}`)
+                .then(res => res.json())
+                .then(data => {
+                    const allSlots = [
+                        "09:00 AM","09:30 AM",
+                        "10:00 AM","10:30 AM","11:00 AM",
+                        "11:30 AM","12:00 PM","12:30 PM",
+                        "02:00 PM","02:30 PM","03:00 PM",
+                        "03:30 PM","04:00 PM","04:30 PM",
+                        "05:00 PM","05:30 PM"
+                    ];
+
+                    const today = new Date();
+                    const selectedDate = new Date(date); // works with input type="date"
+                    timeDropdown.innerHTML = "";
+
+                    let availableCount = 0;
+
+                    allSlots.forEach(slot => {
+                        const option = document.createElement("option");
+                        option.value = slot;
+                        option.textContent = slot;
+
+                        // Convert slot time into comparable Date object
+                        const slotDateTime = new Date(selectedDate);
+                        const [time, period] = slot.split(" ");
+                        let [hour, minute] = time.split(":").map(Number);
+                        if (period === "PM" && hour !== 12) hour += 12;
+                        if (period === "AM" && hour === 12) hour = 0;
+                        slotDateTime.setHours(hour, minute, 0, 0);
+
+                        // Check booked or past
+                        const isBooked = data.booked.includes(slot);
+                        const isPast = (
+                            selectedDate.toDateString() === today.toDateString() &&
+                            slotDateTime < today
+                        );
+
+                        if (isBooked || isPast) {
+                            option.disabled = true;
+                            option.style.color = "gray";
+                            if (isPast) option.textContent += " (Past)";
+                        } else {
+                            availableCount++;
+                        }
+
+                        timeDropdown.appendChild(option);
+                    });
+
+                    // If all slots are past or booked
+                    if (availableCount === 0) {
+                        timeDropdown.innerHTML = `
+                            <option selected disabled>
+                                All available times have passed for this date
+                            </option>`;
+                    }
+                })
+                .catch(() => {
+                    timeDropdown.innerHTML = '<option>Error loading time slots</option>';
+                });
+        }
+
+        doctorDropdown.addEventListener("change", updateTimeSlots);
+        dateInput.addEventListener("change", updateTimeSlots);
+
+        const bookAppointmentForm = document.getElementById("bookAppointmentForm");
+        if(bookAppointmentForm) {
+            bookAppointmentForm.addEventListener("submit", (e) => {
+                e.preventDefault();
+
+                const specialization = document.getElementById("specialization").value;
+                const doctorSelect = document.getElementById("doctor");
+                const doctor_id = doctorSelect.value;
+                const doctor_email = doctorSelect.options[doctorSelect.selectedIndex].dataset.email;
+                const date = document.getElementById("date").value;
+                const time = document.getElementById("time").value;
+
+                if (!time || timeDropdown.options.length === 1 &&
+                    timeDropdown.options[0].disabled &&
+                    timeDropdown.options[0].textContent.includes("All available times have passed")
+                ) {
+                    Swal.fire({
+                        icon: "warning",
+                        title: "No Available Time",
+                        text: "All available time slots have passed for the selected date.",
+                        confirmButtonColor: "#0b2e59"
+                    });
+                    return; // stop submission
+                }
+                
+                fetch("/book_appointment", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ specialization, doctor_id, doctor_email, date, time })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Appointment Booked!",
+                            text: data.message,
+                            confirmButtonColor: "#0b2e59"
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Booking Failed",
+                            text: data.error || "Could not book appointment.",
+                            confirmButtonColor: "#0b2e59"
+                        });
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    Swal.fire({
+                        icon: "error",
+                        title: "Server Error",
+                        text: "Something went wrong while booking.",
+                        confirmButtonColor: "#0b2e59"
+                    });
+                });
+            });
+        }
+        
+        // Cancel appointment buttons
+        document.querySelectorAll(".cancel-btn").forEach(button => {
+            button.addEventListener("click", () => {
+                const appointmentId = button.dataset.id;
+                const appointmentDate = button.dataset.date;
+                const appointmentTime = button.dataset.time;
+
+                Swal.fire({
+                    title: "Cancel this appointment?",
+                    text: "Once cancelled, it cannot be rebooked automatically.",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    cancelButtonColor: "#3085d6",
+                    confirmButtonText: "Yes, cancel it!"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        cancelAppointment(appointmentId, appointmentDate, appointmentTime);
+                    }
+                });
+            });
+        });
+
+        function cancelAppointment(id) {
+            fetch("/cancel_booking", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ appointment_id: id, date, time })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Appointment Cancelled",
+                        text: "Your appointment has been successfully cancelled.",
+                        confirmButtonColor: "#0b2e59"
+                    }).then(() => {
+                        document.getElementById(`appointment-${id}`)?.remove();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Unable to Cancel",
+                        text: data.error || "Appointment not found or already cancelled.",
+                        confirmButtonColor: "#0b2e59"
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire({
+                    icon: "error",
+                    title: "Server Error",
+                    text: "Something went wrong while cancelling the appointment.",
+                    confirmButtonColor: "#0b2e59"
+                });
+            });
+        }
+    }
+
+    const updateProfileForm = document.getElementById("updateProfileForm");
+    if (updateProfileForm) {
+        document.getElementById("updateProfileForm").addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const profileData = {
+                name: document.getElementById("name").value,
+                email: document.getElementById("email").value,
+                phone_number: document.getElementById("phone_number").value,
+                new_password: document.getElementById("new_password").value,
+                confirm_password: document.getElementById("confirm_password").value
+            };
+
+            fetch("/update_profile", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(profileData)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Profile Updated",
+                        text: data.message,
+                        confirmButtonColor: "#0b2e59"
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Update Failed",
+                        text: data.error,
+                        confirmButtonColor: "#0b2e59"
+                    });
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                Swal.fire({
+                    icon: "error",
+                    title: "Server Error",
+                    text: "Something went wrong while updating your profile.",
+                    confirmButtonColor: "#0b2e59"
+                });
+            });
+        });
+    }
+});

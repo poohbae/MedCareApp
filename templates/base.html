@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}MedCare App{% endblock %}</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/logo.png') }}" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</head>
+
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-left">
+            <h2 class="navbar-brand">MedCare App</h2>
+        </div>
+
+        <div class="navbar-right">
+            <ul class="nav-menu">
+                
+                {# If no user logged in — show Login #}
+                {% if not session.get('user_id') %}
+                    <li><a href="{{ url_for('login') }}" class="nav-btn login-btn">Login</a></li>
+
+                {% else %}
+                    {# Admin Navigation #}
+                    {% if session.get('role_id') == 1 %}
+                    <li>
+                        <a href="{{ url_for('admin_dashboard') }}" 
+                        class="nav-btn {% if request.endpoint == 'admin_dashboard' %}active{% endif %}">
+                        Home
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('admin_logs') }}" 
+                        class="nav-btn {% if request.endpoint == 'admin_logs' %}active{% endif %}">
+                        Logs
+                        </a>
+                    </li>
+                    {# Doctor Navigation #}
+                    {% elif session.get('role_id') == 2 %}
+                    <li>
+                        <a href="{{ url_for('doctor_dashboard') }}" 
+                        class="nav-btn {% if request.endpoint == 'doctor_dashboard' %}active{% endif %}">
+                        Home
+                        </a>
+                    </li>
+                    {# Patient Navigation #}
+                    {% elif session.get('role_id') == 3 %}
+                    <li>
+                        <a href="{{ url_for('patient_dashboard') }}" 
+                        class="nav-btn {% if request.endpoint == 'patient_dashboard' %}active{% endif %}">
+                        Home
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {# Logout is always visible for logged-in users #}
+                    <li>
+                        <a href="{{ url_for('profile') }}" 
+                        class="nav-btn {% if request.endpoint == 'profile' %}active{% endif %}">
+                        Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('security_tips') }}" 
+                        class="nav-btn {% if request.endpoint == 'security_tips' %}active{% endif %}">
+                        Security Tips
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('logout') }}" 
+                        class="nav-btn logout-btn">Logout</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </nav>
+
+
+    <!-- Main Content -->
+    <main class="content {% block content_class %}{% endblock %}">
+        {% block content %}{% endblock %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-container">
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+            </div>
+        {% endif %}
+        {% endwith %}
+    </main>
+
+    <footer class="footer">
+        © 2025 MedCare App Slot Booking System — All Rights Reserved
+    </footer>
+</body>
+</html>
