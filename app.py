@@ -39,18 +39,36 @@ def make_session_permanent():
     session.permanent = True
     app.permanent_session_lifetime = timedelta(minutes=30)
 
-    # Use timezone-aware UTC timestamp
     now_ts = datetime.now(timezone.utc).timestamp()
 
     if 'last_activity' in session:
         last_activity_ts = session.get('last_activity')
-        # If idle for more than 30 minutes → auto logout
-        if (now_ts - last_activity_ts) > 1800:  # 1800 seconds = 30 mins
+
+        # Auto logout if idle > 30 minutes
+        if (now_ts - last_activity_ts) > 1800:
+            # Log session timeout
+            if 'user_id' in session:
+                safe_log_async(
+                    session['user_id'],
+                    "Session Timeout",
+                    "User auto-logged out due to inactivity",
+                    request.remote_addr
+                )
+
             session.clear()
             flash("Session expired due to inactivity. Please log in again.", "error")
             return redirect(url_for('login'))
 
-    # Save current timestamp
+    # Log every request made by a logged-in user
+    if 'user_id' in session:
+        safe_log_async(
+            session['user_id'],
+            "Activity",
+            f"User accessed {request.path}",
+            request.remote_addr
+        )
+
+    # Save timestamp AFTER logging
     session['last_activity'] = now_ts
 
 # =============================
@@ -1005,6 +1023,23 @@ def export_logs():
 
     role_filter = request.args.get('role', 'all').lower()
     action_filter = request.args.get('action', 'all').lower()
+    date_filter = request.args.get('date', 'all').lower()
+
+    now = datetime.now()
+
+    def is_date_allowed(log_timestamp):
+        ts = datetime.strptime(log_timestamp, "%Y-%m-%d %H:%M:%S")
+
+        if date_filter == 'today':
+            return ts.date() == now.date()
+
+        elif date_filter == '7days':
+            return ts >= now - timedelta(days=7)
+
+        elif date_filter == '30days':
+            return ts >= now - timedelta(days=30)
+
+        return True  # 'all'
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -1025,6 +1060,11 @@ def export_logs():
     for log in logs:
         role_name = log['role_name'].lower()
         action = log['action'].lower()
+        timestamp = log['timestamp']
+
+        if not is_date_allowed(timestamp):
+            continue
+
         if (role_filter == 'all' or role_filter in role_name) and (action_filter == 'all' or action_filter in action):
             filtered_logs.append(log)
 
